@@ -3248,6 +3248,11 @@ msgstr ""
 "Aucune session locale pour le moment"
 
 #: package/contents/ui/main.qml
+#, javascript-format
+msgid "Muse 7-day: %1%"
+msgstr "Muse 7 jours : %1%"
+
+#: package/contents/ui/main.qml
 msgid "Claude Usage"
 msgstr "Utilisation Claude"
 

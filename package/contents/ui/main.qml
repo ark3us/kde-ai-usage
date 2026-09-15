@@ -3273,6 +3273,27 @@ PlasmoidItem {
                 costText: root.museTotalTokens > 0 ? root.formatTokens(root.museTotalTokens) : "—"
                 tooltipText: "Muse" + (root.museCurrentAvailable ? "\n" + i18n("Current: %1%", Math.round(root.museCurrentPct)) + (root.museCurrentCountdown ? " (" + root.museCurrentCountdown + ")" : "") : "") + (root.museWeeklyAvailable ? "\n" + i18n("Weekly: %1%", Math.round(root.museWeeklyPct)) : "") + (root.museModel ? "\n" + root.museModel : "") + (root.museTotalTokens > 0 ? "\n" + i18n("%1 tokens", root.formatTokens(root.museTotalTokens)) + " · " + i18np("%1 session", "%1 sessions", root.museStatsTotalSessions) : i18n("\nNo local sessions yet")) + (root.museCostUSD > 0 ? "\n" + i18n("Spend (est.): %1", root.formatMoney(root.museCostUSD, root.museCurrency)) : "")
             }
+
+            // Muse bills a rolling 7-day quota next to the current window, so
+            // give it its own pill instead of hiding it in the tooltip.
+            Rectangle {
+                visible: root.panelShows("muse") && root.museCurrentAvailable && root.museWeeklyAvailable
+                width: 1
+                height: 14
+                color: Qt.rgba(1, 1, 1, 0.16)
+                Layout.alignment: Qt.AlignVCenter
+            }
+
+            PanelSlot {
+                pct: root.museWeeklyPct
+                iconColor: root.weeklyColor
+                iconSource: Qt.resolvedUrl("../icons/muse-color.svg")
+                iconTint: root.weeklyColor
+                iconText: i18n("7D")
+                stale: root.stale && root.panelShows("muse")
+                visible: root.panelShows("muse") && root.museWeeklyAvailable
+                tooltipText: i18n("Muse 7-day: %1%", Math.round(root.museWeeklyPct)) + (root.museWeeklyCountdown ? "\n" + i18n("Resets: %1", root.museWeeklyCountdown) : "")
+            }
         }
     }
 

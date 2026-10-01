@@ -1,0 +1,3 @@
+{"success":true,"data":{"level":"lite","limits":[
+  {"type":"CREDIT_LIMIT","unit":3,"number":5,"usage":2000,"currentValue":230,"remaining":1769,"percentage":11,"nextResetTime":1790847677991},
+  {"type":"CREDIT_LIMIT","unit":6,"number":1,"usage":10000,"currentValue":230,"remaining":9769,"percentage":2,"nextResetTime":1791433686983}]}}

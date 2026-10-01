@@ -125,6 +125,27 @@ def _zai_key():
     )
 
 
+# The window types that carry a consumption quota. The coding plans moved from
+# TOKENS_LIMIT to CREDIT_LIMIT without warning; both are still in the wild, so
+# neither can be dropped.
+_QUOTA_TYPES = ("TOKENS_LIMIT", "CREDIT_LIMIT")
+
+
+def _window_amounts(window):
+    """One window's (spent, allowance), in whichever vocabulary it arrived.
+
+    TOKENS_LIMIT names them `used` and `limit`. CREDIT_LIMIT names the
+    allowance `usage` and the spend `currentValue` — so `usage` means the
+    opposite of what the same word means in the token windows, and reading it
+    as consumption reports a fresh quota as fully spent.
+    """
+    if window.get("type") == "CREDIT_LIMIT":
+        return window.get("currentValue"), window.get("usage")
+    spent = window.get("used") if window.get("used") is not None else window.get("usage")
+    allowance = window.get("limit") if window.get("limit") is not None else window.get("total")
+    return spent, allowance
+
+
 def get_zai_usage():
     api_key = _zai_key()
     if not api_key:
@@ -152,24 +173,25 @@ def get_zai_usage():
 
     data = body.get("data") if isinstance(body.get("data"), dict) else None
     limits = data.get("limits") if data and isinstance(data.get("limits"), list) else None
-    has_expected = limits is not None and any(lim.get("type") in ("TOKENS_LIMIT", "TIME_LIMIT") for lim in limits)
+    has_expected = limits is not None and any(lim.get("type") in (*_QUOTA_TYPES, "TIME_LIMIT") for lim in limits)
 
     if body.get("success") is True and has_expected:
-        # Z.AI exposes multiple TOKENS_LIMIT windows (a short ~5-hour AND a
-        # longer ~weekly one). Upstream took only the first via next() and
-        # silently dropped the second; collect all in API order instead.
-        tok_windows = [lim for lim in limits if lim.get("type") == "TOKENS_LIMIT"]
+        # Z.AI exposes multiple quota windows (a short ~5-hour AND a longer
+        # ~weekly one). Upstream took only the first via next() and silently
+        # dropped the second; collect all in API order instead.
+        tok_windows = [lim for lim in limits if lim.get("type") in _QUOTA_TYPES]
         tok = tok_windows[0] if tok_windows else {}
         tok2 = tok_windows[1] if len(tok_windows) > 1 else {}
         tools = next((lim for lim in limits if lim.get("type") == "TIME_LIMIT"), {})
+        tok_used, tok_limit = _window_amounts(tok)
         return {
             "hasKey": True,
             "keyValid": True,
             "level": data.get("level") or "",
             "tokenPct": tok.get("percentage") or 0,
             "tokenResetMs": tok.get("nextResetTime"),
-            "tokenUsed": tok.get("used") if tok.get("used") is not None else tok.get("usage"),
-            "tokenLimit": tok.get("limit") if tok.get("limit") is not None else tok.get("total"),
+            "tokenUsed": tok_used,
+            "tokenLimit": tok_limit,
             "token2Pct": tok2.get("percentage") or 0,
             "token2ResetMs": tok2.get("nextResetTime"),
             "toolsPct": tools.get("percentage") or 0,

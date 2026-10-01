@@ -92,6 +92,21 @@ class CollectorTest(IsolatedHomeTest):
         details = providers["copilot"]["details"]
         self.assertEqual((details["quota"], details["used"], details["resetAt"]), (200, 19.8, 1785542400))
 
+    def test_zai_credit_windows(self):
+        """The coding plan bills credits now: the quota call answers with
+        CREDIT_LIMIT windows carrying `usage` as the allowance and
+        `currentValue` as what has been spent, where it used to send
+        TOKENS_LIMIT with `used`/`limit`."""
+        os.environ["ZAI_RESPONSE_FILE"] = str(FIXTURES / "zai-credit-response.json")
+        zai = {p["id"]: p for p in self.run_backend("--provider", "zai")["providers"]}["zai"]
+        self.assertTrue(zai["ok"])
+        details = zai["details"]
+        self.assertTrue(details["keyValid"])
+        self.assertEqual(details["level"], "lite")
+        self.assertEqual((details["token"]["pct"], details["token"]["used"], details["token"]["limit"]), (11, 230, 2000))
+        self.assertEqual(details["token"]["resetAt"], 1790847677)
+        self.assertEqual((details["tokenLong"]["pct"], details["tokenLong"]["resetAt"]), (2, 1791433686))
+
     def test_provider_selection_and_opt_in_defaults(self):
         self.assertEqual([p["id"] for p in self.run_backend("--provider", "deepseek,zai")["providers"]], ["deepseek", "zai"])
         self.assertEqual([p["id"] for p in self.run_backend("--provider", "kiro")["providers"]], ["kiro"])
